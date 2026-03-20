@@ -8,14 +8,19 @@ import React from "react";
 
 const PyodideContext = React.createContext<PyodideWorkerClient | null>(null);
 
+type ManagedWorker = {
+  worker: Worker;
+  ready: boolean;
+};
+
 function PyodideProvider({ children }: { children: React.ReactNode }) {
   const [pyodide, setPyodide] = React.useState<PyodideWorkerClient | null>(
     null,
   );
 
   React.useEffect(() => {
-    let worker: Worker | null = null;
-    let workerGeneration = 0;
+    let activeWorker: ManagedWorker | null = null;
+    let standbyWorker: ManagedWorker | null = null;
 
     const pendingRequests = new Map<
       number,
@@ -33,63 +38,88 @@ function PyodideProvider({ children }: { children: React.ReactNode }) {
       pendingRequests.clear();
     }
 
-    function resetWorker(errorMessage: string) {
-      rejectAllPending(new Error(errorMessage));
-      worker?.terminate();
-      worker = null;
+    function setClientReady() {
+      setPyodide({
+        runPythonAsync: (code: string) => {
+          const currentWorker = activeWorker;
+          if (!currentWorker || !currentWorker.ready) {
+            return Promise.reject(new Error("Pyodide is not ready"));
+          }
+
+          const id = requestId;
+          requestId += 1;
+
+          return new Promise<PyodideRunResult>((resolve, reject) => {
+            pendingRequests.set(id, { resolve, reject });
+            currentWorker.worker.postMessage({
+              type: "run",
+              id,
+              code,
+            } satisfies WorkerRequest);
+          });
+        },
+        stopCurrentJob: () => {
+          resetWorker("Execution interrupted");
+        },
+        restartWorker: () => {
+          resetWorker("Pyodide worker restarted");
+        },
+      });
+    }
+
+    function promoteStandbyWorker() {
+      if (!standbyWorker) {
+        activeWorker = null;
+        setPyodide(null);
+        return;
+      }
+
+      activeWorker = standbyWorker;
+      standbyWorker = null;
+
+      if (activeWorker.ready) {
+        setClientReady();
+        return;
+      }
+
       setPyodide(null);
-      createWorker();
     }
 
     function createWorker() {
-      workerGeneration += 1;
-      const generation = workerGeneration;
-      const nextWorker = new Worker(
+      const worker = new Worker(
         new URL("../pyodide.worker.ts", import.meta.url),
         {
           type: "module",
         },
       );
-      worker = nextWorker;
 
-      nextWorker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-        if (generation !== workerGeneration) {
+      const managedWorker: ManagedWorker = {
+        worker,
+        ready: false,
+      };
+
+      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+        const isActive = managedWorker === activeWorker;
+        const isStandby = managedWorker === standbyWorker;
+        if (!isActive && !isStandby) {
           return;
         }
 
         const message = event.data;
         if (message.type === "ready") {
-          setPyodide({
-            runPythonAsync: (code: string) => {
-              if (!worker || generation !== workerGeneration) {
-                return Promise.reject(new Error("Pyodide is not ready"));
-              }
-
-              const id = requestId;
-              requestId += 1;
-
-              return new Promise<PyodideRunResult>((resolve, reject) => {
-                pendingRequests.set(id, { resolve, reject });
-                worker?.postMessage({
-                  type: "run",
-                  id,
-                  code,
-                } satisfies WorkerRequest);
-              });
-            },
-            stopCurrentJob: () => {
-              resetWorker("Execution interrupted");
-            },
-            restartWorker: () => {
-              resetWorker("Pyodide worker restarted");
-            },
-          });
+          managedWorker.ready = true;
+          if (isActive) {
+            setClientReady();
+          }
           return;
         }
 
         if (message.type === "init-error") {
-          rejectAllPending(new Error(message.error));
-          setPyodide(null);
+          handleWorkerFatalError(managedWorker, message.error);
+          return;
+        }
+
+        if (!isActive) {
           return;
         }
 
@@ -107,21 +137,56 @@ function PyodideProvider({ children }: { children: React.ReactNode }) {
         request.reject(new Error(message.error));
       };
 
-      nextWorker.onerror = (event) => {
-        if (generation !== workerGeneration) {
-          return;
-        }
-        rejectAllPending(new Error(event.message));
-        setPyodide(null);
+      worker.onerror = (event) => {
+        handleWorkerFatalError(managedWorker, event.message);
       };
+
+      return managedWorker;
     }
 
-    createWorker();
+    function ensureStandbyWorker() {
+      if (standbyWorker) {
+        return;
+      }
+      standbyWorker = createWorker();
+    }
+
+    function handleWorkerFatalError(
+      managedWorker: ManagedWorker,
+      message: string,
+    ) {
+      if (managedWorker === activeWorker) {
+        rejectAllPending(new Error(message));
+        activeWorker = null;
+        promoteStandbyWorker();
+        ensureStandbyWorker();
+        return;
+      }
+
+      if (managedWorker === standbyWorker) {
+        standbyWorker = null;
+        ensureStandbyWorker();
+      }
+    }
+
+    function resetWorker(errorMessage: string) {
+      rejectAllPending(new Error(errorMessage));
+      activeWorker?.worker.terminate();
+      activeWorker = null;
+      promoteStandbyWorker();
+      ensureStandbyWorker();
+    }
+
+    activeWorker = createWorker();
+    standbyWorker = createWorker();
 
     return () => {
       rejectAllPending(new Error("Pyodide worker terminated"));
-      worker?.terminate();
-      worker = null;
+      activeWorker?.worker.terminate();
+      standbyWorker?.worker.terminate();
+      activeWorker = null;
+      standbyWorker = null;
+      setPyodide(null);
     };
   }, []);
 
