@@ -2,6 +2,7 @@ import {
   CloudDownloadIcon,
   Loading02Icon,
   PlayIcon,
+  StopIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatForDisplay, useHotkey } from "@tanstack/react-hotkeys";
@@ -22,39 +23,48 @@ import {
 } from "./components/ui/tooltip";
 import { useIsMobile } from "./hooks/use-mobile";
 import { usePyodide } from "./lib/context/pyodide";
+import { cn } from "./lib/utils";
 import "./main.css";
+import { PyodideRunResult } from "./types/pyodide";
 
 export default function App() {
   const pyodide = usePyodide();
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [output, setOutput] = useState<string>();
+  const [output, setOutput] = useState<PyodideRunResult>();
+  const [isError, setIsError] = useState(false);
   const isMobile = useIsMobile();
 
   useHotkey("Mod+Enter", () => runCode(), {
     enabled: !!pyodide,
     target: inputRef,
   });
+  useHotkey("Control+C", interruptExecution, {
+    enabled: !!pyodide,
+  });
 
   const { mutate: runCode, isPending } = useMutation({
     mutationFn: async () => {
       if (!pyodide) return;
       setOutput(undefined);
-      let output: string[] = [];
-      pyodide.setStdout({
-        batched: (text: string) => {
-          output.push(text);
-        },
-      });
+      setIsError(false);
       try {
-        const result = await pyodide.runPythonAsync(
+        const execution = await pyodide.runPythonAsync(
           inputRef.current?.value || "",
         );
-        setOutput(output.length > 0 ? output.join("\n") : String(result));
+        setOutput(execution);
       } catch (error) {
-        setOutput(String(error));
+        setOutput({
+          result: String(error),
+          stdout: [],
+        } satisfies PyodideRunResult);
+        setIsError(true);
       }
     },
   });
+
+  function interruptExecution() {
+    pyodide?.stopCurrentJob();
+  }
 
   return (
     <main className="h-dvh overscroll-contain">
@@ -79,7 +89,7 @@ export default function App() {
         <ResizablePanel className="p-2 pt-4" minSize={160}>
           <div className="flex h-full flex-col space-y-4">
             {pyodide ? (
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <Tooltip>
                   <TooltipTrigger
                     render={
@@ -100,6 +110,24 @@ export default function App() {
                     Run Python <Kbd>{formatForDisplay("Mod+Enter")}</Kbd>
                   </TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        disabled={!isPending}
+                        onClick={interruptExecution}
+                      >
+                        <HugeiconsIcon icon={StopIcon} />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent align="start">
+                    Interrupt execution{" "}
+                    <Kbd>{formatForDisplay("Control+C")}</Kbd>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             ) : (
               <Button disabled variant="outline" className="w-fit">
@@ -110,11 +138,20 @@ export default function App() {
                 Downloading Pyodide
               </Button>
             )}
-            <pre className="bg-input/30 border-input relative grow overflow-y-auto overscroll-contain rounded-xl border p-3 pt-9 text-sm wrap-break-word whitespace-pre-wrap">
+            <pre
+              className={cn(
+                "bg-input/30 border-input relative grow overflow-y-auto overscroll-contain rounded-xl border p-3 pt-9 text-sm wrap-break-word whitespace-pre-wrap",
+                isError && "text-destructive",
+              )}
+            >
               <p className="text-muted-foreground pointer-events-none absolute top-3 left-3 font-mono text-xs font-bold">
                 Output
               </p>
-              {output}
+              {output
+                ? output.stdout.length > 0
+                  ? output.stdout.join("\n")
+                  : output.result
+                : ""}
             </pre>
           </div>
         </ResizablePanel>
