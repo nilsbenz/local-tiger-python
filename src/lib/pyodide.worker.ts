@@ -41,8 +41,9 @@ self.onmessage = async (event: MessageEvent<IncomingMessage>) => {
     return;
   }
 
-  currentStdout = [];
   try {
+    await pyodide.loadPackagesFromImports(message.code);
+    currentStdout = [];
     const result = await pyodide.runPythonAsync(message.code);
     const stdout = currentStdout ?? [];
     currentStdout = null;
