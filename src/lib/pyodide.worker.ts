@@ -1,11 +1,11 @@
 import { IncomingMessage, OutgoingMessage } from "@/types/pyodide";
-import { loadPyodide, type PyodideAPI, version } from "pyodide";
+import { loadPyodide, type PyodideAPI } from "pyodide";
 
 let pyodide: PyodideAPI | null = null;
 let currentStdout: string[] | null = null;
 
 const initPromise = loadPyodide({
-  indexURL: `https://cdn.jsdelivr.net/pyodide/v${version}/full/`,
+  indexURL: "/pyodide",
 })
   .then((api) => {
     pyodide = api;

@@ -1,20 +1,37 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { viteStaticCopy } from "vite-plugin-static-copy";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+
+const PYODIDE_EXCLUDE = ["!**/*.{md,html}", "!**/*.d.ts", "!**/node_modules"];
+
+export function viteStaticCopyPyodide() {
+  const pyodideDir = dirname(fileURLToPath(import.meta.resolve("pyodide")));
+  return viteStaticCopy({
+    targets: [
+      {
+        src: [join(pyodideDir, "*")].concat(PYODIDE_EXCLUDE),
+        dest: "pyodide",
+      },
+    ],
+  });
+}
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  optimizeDeps: { exclude: ["pyodide"] },
+  plugins: [react(), tailwindcss(), viteStaticCopyPyodide()],
   resolve: {
     alias: {
       "@": new URL("./src", import.meta.url).pathname,
     },
   },
   worker: {
-    format: "es",
+    format: "es" as const,
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
