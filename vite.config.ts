@@ -1,9 +1,10 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { viteStaticCopy } from "vite-plugin-static-copy";
+import react from "@vitejs/plugin-react";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -24,7 +25,53 @@ export function viteStaticCopyPyodide() {
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   optimizeDeps: { exclude: ["pyodide"] },
-  plugins: [react(), tailwindcss(), viteStaticCopyPyodide()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteStaticCopyPyodide(),
+    VitePWA({
+      registerType: "autoUpdate",
+      workbox: {
+        globPatterns: ["**/*"],
+        maximumFileSizeToCacheInBytes: 1024 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+      },
+      includeAssets: ["**/*"],
+      manifest: {
+        theme_color: "#0a0a0a",
+        background_color: "#ffffff",
+        display: "standalone",
+        scope: "/",
+        start_url: "/",
+        short_name: "LocalTP",
+        description: "LocalTP",
+        name: "LocalTP",
+        icons: [
+          {
+            src: "pwa-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+          },
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": new URL("./src", import.meta.url).pathname,

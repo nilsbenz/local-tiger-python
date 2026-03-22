@@ -15,6 +15,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "./components/ui/resizable";
+import { Toaster } from "./components/ui/sonner";
 import { Textarea } from "./components/ui/textarea";
 import {
   Tooltip,
@@ -73,7 +74,7 @@ print(a)`);
     <main>
       <ResizablePanelGroup
         orientation={isMobile ? "vertical" : "horizontal"}
-        className="fixed inset-0 h-full"
+        className="top-safe-top left-safe-left right-safe-right bottom-safe-bottom fixed h-full"
       >
         <ResizablePanel className="p-2" minSize={160}>
           <div className="relative h-full">
@@ -171,6 +172,7 @@ print(a)`);
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+      <Toaster position={isMobile ? "top-center" : "top-right"} />
     </main>
   );
 }
