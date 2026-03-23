@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "local-tiger-python",
+  "productName": "LocalTP",
   "version": "0.1.0",
   "identifier": "com.nilsbenz.local-tiger-python",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "LocalTigerPython",
+        "title": "LocalTP",
         "width": 800,
         "height": 600,
         "minWidth": 320,

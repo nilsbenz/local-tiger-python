@@ -119,21 +119,11 @@ print(a)`,
             <p className="text-muted-foreground pointer-events-none absolute top-3 left-3 font-mono text-xs font-bold">
               main.py
             </p>
-            <div className="text-muted-foreground pointer-events-none absolute top-9 left-0 tabular-nums">
-              {new Array(input.split("\n").length).fill(null).map((_, i) => (
-                <div key={i} className="relative w-6 text-sm">
-                  <span className="invisible">{i + 1}</span>
-                  <span className="absolute right-0 bottom-0 text-xs">
-                    {i + 1}
-                  </span>
-                </div>
-              ))}
-            </div>
             <Textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="h-full pt-9 pl-8 font-mono text-sm"
+              className="h-full pt-9 font-mono text-sm"
               autoFocus
               wrap="off"
             />
