@@ -13,6 +13,7 @@ registerSW({
   immediate: true,
   onOfflineReady() {
     localStorage.setItem("is-offline-ready", String(true));
+    window.dispatchEvent(new Event("offline-ready-changed"));
     toast.success("App is ready to work offline");
   },
 });

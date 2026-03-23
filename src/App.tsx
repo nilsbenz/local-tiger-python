@@ -9,7 +9,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useLocalStorage } from "@mantine/hooks";
 import { formatForDisplay, useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Kbd } from "./components/ui/kbd";
@@ -43,10 +43,38 @@ print(a)`,
   const [output, setOutput] = useState<PyodideRunResult>();
   const [isError, setIsError] = useState(false);
   const isMobile = useIsMobile();
-  const [isOfflineReady] = useLocalStorage({
-    key: "is-offline-ready",
-    defaultValue: false,
-  });
+  const [isOfflineReady, setIsOfflineReady] = useState(
+    () => localStorage.getItem("is-offline-ready") === "true",
+  );
+
+  useEffect(() => {
+    function readOfflineReady() {
+      setIsOfflineReady(
+        localStorage.getItem("is-offline-ready") === String(true),
+      );
+    }
+
+    function onStorage(event: StorageEvent) {
+      if (event.key === "is-offline-ready" || event.key === null) {
+        readOfflineReady();
+      }
+    }
+
+    function onOfflineReadyChanged() {
+      readOfflineReady();
+    }
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("offline-ready-changed", onOfflineReadyChanged);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(
+        "offline-ready-changed",
+        onOfflineReadyChanged,
+      );
+    };
+  }, []);
 
   useHotkey("Mod+Enter", () => runCode(), {
     enabled: !!pyodide,
@@ -165,7 +193,10 @@ print(a)`,
                   Loading Pyodide
                 </Button>
               )}
-              <Badge variant="ghost" className="standalone:flex ml-auto hidden">
+              <Badge
+                variant="ghost"
+                className="standalone:flex text-muted-foreground ml-auto hidden"
+              >
                 {isOfflineReady ? (
                   <>
                     <HugeiconsIcon icon={CloudSavingDone02Icon} />
