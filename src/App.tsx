@@ -1,6 +1,6 @@
 import {
   CloudDownloadIcon,
-  CloudSavingDone02Icon,
+  CloudSavingDone01Icon,
   Loading02Icon,
   PlayIcon,
   StopIcon,
@@ -199,7 +199,7 @@ print(a)`,
               >
                 {isOfflineReady ? (
                   <>
-                    <HugeiconsIcon icon={CloudSavingDone02Icon} />
+                    <HugeiconsIcon icon={CloudSavingDone01Icon} />
                     Offline-ready
                   </>
                 ) : (
@@ -208,7 +208,7 @@ print(a)`,
                       icon={CloudDownloadIcon}
                       className="animate-pulse"
                     />
-                    Downloading assets
+                    Loading assets...
                   </>
                 )}
               </Badge>
