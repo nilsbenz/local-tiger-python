@@ -12,6 +12,7 @@ const queryClient = new QueryClient();
 registerSW({
   immediate: true,
   onOfflineReady() {
+    localStorage.setItem("is-offline-ready", String(true));
     toast.success("App is ready to work offline");
   },
 });

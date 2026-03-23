@@ -1,13 +1,16 @@
 import {
   CloudDownloadIcon,
+  CloudSavingDone02Icon,
   Loading02Icon,
   PlayIcon,
   StopIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useLocalStorage } from "@mantine/hooks";
 import { formatForDisplay, useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Kbd } from "./components/ui/kbd";
 import {
@@ -31,12 +34,19 @@ import { PyodideRunResult } from "./types/pyodide";
 export default function App() {
   const pyodide = usePyodide();
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [input, setInput] = useState(`import numpy as np
+  const [input, setInput] = useLocalStorage({
+    key: "input",
+    defaultValue: `import numpy as np
 a = np.arange(15).reshape(3, 5)
-print(a)`);
+print(a)`,
+  });
   const [output, setOutput] = useState<PyodideRunResult>();
   const [isError, setIsError] = useState(false);
   const isMobile = useIsMobile();
+  const [isOfflineReady] = useLocalStorage({
+    key: "is-offline-ready",
+    defaultValue: false,
+  });
 
   useHotkey("Mod+Enter", () => runCode(), {
     enabled: !!pyodide,
@@ -104,59 +114,77 @@ print(a)`);
         <ResizableHandle withHandle />
         <ResizablePanel className="p-2 pt-4" minSize={160}>
           <div className="flex h-full flex-col space-y-4">
-            {pyodide ? (
-              <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button onClick={() => runCode()} disabled={isPending}>
-                        {isPending ? (
-                          <HugeiconsIcon
-                            icon={Loading02Icon}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <HugeiconsIcon icon={PlayIcon} />
-                        )}
-                        Run
-                      </Button>
-                    }
+            <div className="flex items-baseline gap-2">
+              {pyodide ? (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button onClick={() => runCode()} disabled={isPending}>
+                          {isPending ? (
+                            <HugeiconsIcon
+                              icon={Loading02Icon}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <HugeiconsIcon icon={PlayIcon} />
+                          )}
+                          Run
+                        </Button>
+                      }
+                    />
+                    <TooltipContent align="start">
+                      Run Python <Kbd>{formatForDisplay("Mod+Enter")}</Kbd>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          disabled={!isPending}
+                          onClick={interruptExecution}
+                        >
+                          <HugeiconsIcon icon={StopIcon} />
+                        </Button>
+                      }
+                    />
+                    <TooltipContent align="start">
+                      Interrupt execution{" "}
+                      <Kbd>{formatForDisplay("Control+C")}</Kbd>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              ) : (
+                <Button disabled variant="outline" className="w-fit">
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="animate-spin"
                   />
-                  <TooltipContent align="start">
-                    Run Python <Kbd>{formatForDisplay("Mod+Enter")}</Kbd>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        disabled={!isPending}
-                        onClick={interruptExecution}
-                      >
-                        <HugeiconsIcon icon={StopIcon} />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent align="start">
-                    Interrupt execution{" "}
-                    <Kbd>{formatForDisplay("Control+C")}</Kbd>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            ) : (
-              <Button disabled variant="outline" className="w-fit">
-                <HugeiconsIcon
-                  icon={CloudDownloadIcon}
-                  className="animate-pulse"
-                />
-                Loading Pyodide
-              </Button>
-            )}
+                  Loading Pyodide
+                </Button>
+              )}
+              <Badge variant="ghost" className="standalone:flex ml-auto hidden">
+                {isOfflineReady ? (
+                  <>
+                    <HugeiconsIcon icon={CloudSavingDone02Icon} />
+                    Offline-ready
+                  </>
+                ) : (
+                  <>
+                    <HugeiconsIcon
+                      icon={CloudDownloadIcon}
+                      className="animate-pulse"
+                    />
+                    Downloading assets
+                  </>
+                )}
+              </Badge>
+            </div>
             <pre
               className={cn(
-                "bg-input/30 border-input relative grow overflow-y-auto overscroll-contain rounded-xl border p-3 pt-9 text-sm wrap-break-word whitespace-pre-wrap",
+                "bg-input/30 border-input standalone:max-md:rounded-b-[47px] relative grow overflow-y-auto overscroll-contain rounded-xl border p-3 pt-9 text-sm wrap-break-word whitespace-pre-wrap",
                 isError && "text-destructive",
               )}
             >
