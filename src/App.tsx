@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "./components/ui/tooltip";
 import { useIsMobile } from "./hooks/use-mobile";
+import useIsTauriDesktop from "./hooks/use-tauri-desktop";
 import { usePyodide } from "./lib/context/pyodide";
 import { cn } from "./lib/utils";
 import "./main.css";
@@ -33,6 +34,7 @@ import { PyodideRunResult } from "./types/pyodide";
 
 export default function App() {
   const pyodide = usePyodide();
+  const isTauriDesktop = useIsTauriDesktop();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useLocalStorage({
     key: "input",
@@ -132,7 +134,7 @@ print(a)`,
         <ResizableHandle withHandle />
         <ResizablePanel className="p-2 pt-4" minSize={160}>
           <div className="flex h-full flex-col space-y-4">
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               {pyodide ? (
                 <>
                   <Tooltip>
@@ -202,6 +204,22 @@ print(a)`,
                   </>
                 )}
               </Badge>
+              {!isTauriDesktop && (
+                <Button
+                  variant="outline"
+                  className="standalone:hidden ml-auto"
+                  render={
+                    <a
+                      href="https://github.com/nilsbenz/local-tiger-python/releases"
+                      target="_blank"
+                    />
+                  }
+                  nativeButton={false}
+                >
+                  <HugeiconsIcon icon={CloudDownloadIcon} />
+                  Download
+                </Button>
+              )}
             </div>
             <pre
               className={cn(
