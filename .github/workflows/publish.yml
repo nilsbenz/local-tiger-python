@@ -2,10 +2,8 @@ name: "publish"
 
 on:
   push:
-    branches:
-      - release
-
-# This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
+    tags:
+      - "v*"
 
 jobs:
   publish-tauri:
@@ -58,9 +56,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: "App v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
+          tagName: "localtp-${{ github.ref_name }}"
+          releaseName: "LocalTP ${{ github.ref_name }}"
+          releaseBody: |
+            ## Running on Windows and macOS
+
+            LocalTP is not code-signed, so Windows and macOS may show warnings when launching the app.
+
+            - Windows: When launching the app, you may see a Windows Defender SmartScreen warning.
+              - Click **"More info" → "Run anyway"** to proceed.
+            - macOS: You'll need to remove the quarantine flag after installation, otherwise macOS may report the app as corrupted:
+              ```
+              xattr -dr com.apple.quarantine /Applications/LocalTP.app
+              ```
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
