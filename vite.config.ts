@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { defineConfig } from "vite";
+import { defineConfig, normalizePath } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
@@ -15,7 +15,7 @@ export function viteStaticCopyPyodide() {
   return viteStaticCopy({
     targets: [
       {
-        src: [join(pyodideDir, "*")].concat(PYODIDE_EXCLUDE),
+        src: [join(pyodideDir, "*")].concat(PYODIDE_EXCLUDE).map(normalizePath),
         dest: "pyodide",
       },
     ],
