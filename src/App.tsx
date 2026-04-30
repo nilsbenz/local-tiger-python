@@ -6,10 +6,12 @@ import {
   StopIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useLocalStorage } from "@mantine/hooks";
 import { formatForDisplay, useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
+import Editor from "./components/editor";
+import { ModeToggle } from "./components/mode-toggle";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Kbd } from "./components/ui/kbd";
@@ -19,7 +21,6 @@ import {
   ResizablePanelGroup,
 } from "./components/ui/resizable";
 import { Toaster } from "./components/ui/sonner";
-import { Textarea } from "./components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -27,27 +28,21 @@ import {
 } from "./components/ui/tooltip";
 import { useIsMobile } from "./hooks/use-mobile";
 import useIsTauriDesktop from "./hooks/use-tauri-desktop";
+import { editorContentAtom } from "./lib/atoms";
 import { usePyodide } from "./lib/context/pyodide";
 import { cn } from "./lib/utils";
-import "./main.css";
 import { PyodideRunResult } from "./types/pyodide";
 
 export default function App() {
   const pyodide = usePyodide();
   const isTauriDesktop = useIsTauriDesktop();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [input, setInput] = useLocalStorage({
-    key: "input",
-    defaultValue: `import numpy as np
-a = np.arange(15).reshape(3, 5)
-print(a)`,
-  });
   const [output, setOutput] = useState<PyodideRunResult>();
   const [isError, setIsError] = useState(false);
   const isMobile = useIsMobile();
   const [isOfflineReady, setIsOfflineReady] = useState(
     () => localStorage.getItem("is-offline-ready") === "true",
   );
+  const editorContent = useAtomValue(editorContentAtom);
 
   useEffect(() => {
     function readOfflineReady() {
@@ -78,10 +73,6 @@ print(a)`,
     };
   }, []);
 
-  useHotkey("Mod+Enter", () => runCode(), {
-    enabled: !!pyodide,
-    target: inputRef,
-  });
   useHotkey("Control+C", interruptExecution, {
     enabled: !!pyodide,
   });
@@ -92,9 +83,7 @@ print(a)`,
       setOutput(undefined);
       setIsError(false);
       try {
-        const execution = await pyodide.runPythonAsync(
-          inputRef.current?.value || "",
-        );
+        const execution = await pyodide.runPythonAsync(editorContent);
         setOutput(execution);
       } catch (error) {
         setOutput({
@@ -111,25 +100,13 @@ print(a)`,
   }
 
   return (
-    <main>
+    <>
       <ResizablePanelGroup
         orientation={isMobile ? "vertical" : "horizontal"}
-        className="top-safe-top left-safe-left right-safe-right bottom-safe-bottom fixed h-full"
+        className="h-full"
       >
         <ResizablePanel className="p-2" minSize={160}>
-          <div className="relative h-full">
-            <p className="text-muted-foreground pointer-events-none absolute top-3 left-3 font-mono text-xs font-bold">
-              main.py
-            </p>
-            <Textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="h-full pt-9 font-mono text-sm"
-              autoFocus
-              wrap="off"
-            />
-          </div>
+          <Editor onRun={runCode} />
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel className="p-2 pt-4" minSize={160}>
@@ -205,20 +182,23 @@ print(a)`,
                 )}
               </Badge>
               {!isTauriDesktop && (
-                <Button
-                  variant="outline"
-                  className="standalone:hidden ml-auto"
-                  render={
-                    <a
-                      href="https://github.com/nilsbenz/local-tiger-python/releases"
-                      target="_blank"
-                    />
-                  }
-                  nativeButton={false}
-                >
-                  <HugeiconsIcon icon={CloudDownloadIcon} />
-                  Download
-                </Button>
+                <div className="ml-auto flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="standalone:hidden"
+                    render={
+                      <a
+                        href="https://github.com/nilsbenz/local-tiger-python/releases/latest"
+                        target="_blank"
+                      />
+                    }
+                    nativeButton={false}
+                  >
+                    <HugeiconsIcon icon={CloudDownloadIcon} />
+                    Download
+                  </Button>
+                  <ModeToggle />
+                </div>
               )}
             </div>
             <pre
@@ -240,6 +220,6 @@ print(a)`,
         </ResizablePanel>
       </ResizablePanelGroup>
       <Toaster position={isMobile ? "top-center" : "top-right"} />
-    </main>
+    </>
   );
 }

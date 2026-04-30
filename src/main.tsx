@@ -4,8 +4,12 @@ import ReactDOM from "react-dom/client";
 import { toast } from "sonner";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App";
+import { AppSidebar } from "./components/app-sidebar";
+import { ThemeProvider } from "./components/theme-provider";
+import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { PyodideProvider } from "./lib/context/pyodide";
+import "./main.css";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +27,14 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <TooltipProvider>
       <QueryClientProvider client={queryClient}>
         <PyodideProvider>
-          <App />
+          <ThemeProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <App />
+              </SidebarInset>
+            </SidebarProvider>
+          </ThemeProvider>
         </PyodideProvider>
       </QueryClientProvider>
     </TooltipProvider>
