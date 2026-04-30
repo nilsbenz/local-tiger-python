@@ -162,27 +162,27 @@ export default function App() {
                   Loading Pyodide
                 </Button>
               )}
-              <Badge
-                variant="ghost"
-                className="standalone:flex text-muted-foreground ml-auto hidden"
-              >
-                {isOfflineReady ? (
-                  <>
-                    <HugeiconsIcon icon={CloudSavingDone01Icon} />
-                    Offline-ready
-                  </>
-                ) : (
-                  <>
-                    <HugeiconsIcon
-                      icon={CloudDownloadIcon}
-                      className="animate-pulse"
-                    />
-                    Loading assets...
-                  </>
-                )}
-              </Badge>
               {!isTauriDesktop && (
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex items-center gap-2">
+                  <Badge
+                    variant="ghost"
+                    className="standalone:flex text-muted-foreground hidden"
+                  >
+                    {isOfflineReady ? (
+                      <>
+                        <HugeiconsIcon icon={CloudSavingDone01Icon} />
+                        Offline-ready
+                      </>
+                    ) : (
+                      <>
+                        <HugeiconsIcon
+                          icon={CloudDownloadIcon}
+                          className="animate-pulse"
+                        />
+                        Loading assets...
+                      </>
+                    )}
+                  </Badge>
                   <Button
                     variant="outline"
                     className="standalone:hidden"
