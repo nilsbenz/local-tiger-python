@@ -15,7 +15,6 @@ import {
   currentFileAtom,
   currentFileEditedAtom,
 } from "@/lib/atoms";
-import { cn } from "@/lib/utils";
 import { File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatForDisplay, useHotkey } from "@tanstack/react-hotkeys";
@@ -98,39 +97,31 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader
-        className={cn("standalone:hidden", isTauriDesktop && "hidden")}
-      >
-        <h1 className="flex items-center gap-1 text-lg font-semibold">
-          <img src="/icon.svg" alt="" className="size-6" />
-          LocalTP
-        </h1>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={handleOpenDirectory}
+              disabled={!isTauriDesktop}
+              variant="outline"
+            >
+              <HugeiconsIcon icon={Folder02Icon} />
+              Open Folder
+              <Kbd className="ml-auto">{formatForDisplay("Mod+O")}</Kbd>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => setCurrentFile(null)}
+              data-active={!currentFile}
+            >
+              <HugeiconsIcon icon={File02Icon} />
+              <span className="truncate">Scratchpad</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={handleOpenDirectory}
-                disabled={!isTauriDesktop}
-                variant="outline"
-              >
-                <HugeiconsIcon icon={Folder02Icon} />
-                Open Folder
-                <Kbd className="ml-auto">{formatForDisplay("Mod+O")}</Kbd>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setCurrentFile(null)}
-                data-active={!currentFile}
-              >
-                <HugeiconsIcon icon={File02Icon} />
-                <span className="truncate">Scratchpad</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
         {baseDir && (
           <SidebarGroup>
             <SidebarGroupLabel>{folderName}</SidebarGroupLabel>
